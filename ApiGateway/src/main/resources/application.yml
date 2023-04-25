@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      routes:
+        - id: order-management-service
+          uri: lb://ORDER-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/v1/api/order/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: order-management-service
+                fallbackUri: forward:/v1/api/order/order-fallback
+        - id: restaurant-search-service
+          uri: lb://RESTAURANT-SEARCH-SERVICE
+          predicates:
+            - Path=/v1/api/restaurants/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: restaurant-search-service
+                fallbackUri: forward:/v1/api/restaurants/restaurant-search-fallback
+  datasource:
+    url: jdbc:mysql://localhost:3306/ordermyfood
+    username: root
+    password: Hrudesh1@
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    hostname: localhost
+server:
+  port: 8969
+
+resilience4j.circuitbreaker:
+    instances:
+      order-management-service:
+        register-health-indicator: true
+        event-consumer-buffer-size: 10
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+      restaurant-search-service:
+        register-health-indicator: true
+        event-consumer-buffer-size: 10
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
